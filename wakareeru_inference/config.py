@@ -34,6 +34,7 @@ class ConfusionGroup(BaseModel):
 
 
 class PostprocessConfig(BaseModel):
+    min_classification_probability: float = Field(ge=0.0, le=1.0)
     confusion_groups_enabled: bool = False
     confusion_groups: list[ConfusionGroup] = Field(default_factory=list)
 
@@ -43,7 +44,7 @@ class ServiceConfig(BaseModel):
     detector: DetectorConfig
     crop: CropConfig
     classifier: ClassifierConfig
-    postprocess: PostprocessConfig = Field(default_factory=PostprocessConfig)
+    postprocess: PostprocessConfig
 
 
 def load_service_config(path: str | Path) -> ServiceConfig:

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from wakareeru_inference.config import PostprocessConfig
 from wakareeru_inference.crop import CropCandidate
+from wakareeru_inference.response_schema import ClassificationStatus, ResponseStatus
 
 if TYPE_CHECKING:
     from wakareeru_inference.predict import SubjectPrediction
@@ -26,7 +27,10 @@ def attach_postprocess(
     predictions: list[dict[str, Any]],
     config: PostprocessConfig,
 ) -> dict[str, Any]:
-    classification_payload = build_classification_payload(predictions)
+    classification_payload = build_classification_payload(
+        predictions,
+        min_probability=config.min_classification_probability,
+    )
     if config.confusion_groups_enabled:
         apply_confusion_groups(
             classification_payload=classification_payload,
@@ -35,16 +39,25 @@ def attach_postprocess(
     return classification_payload
 
 
-def build_classification_payload(predictions: list[dict[str, Any]]) -> dict[str, Any]:
+def build_classification_payload(
+    predictions: list[dict[str, Any]],
+    *,
+    min_probability: float,
+) -> dict[str, Any]:
     if not predictions:
         return {
+            "status": ClassificationStatus.NO_PREDICTION.value,
             "top_prediction": None,
             "top_k": [],
             "confusion_group": None,
             "group_candidates": [],
         }
     top_prediction = predictions[0]
+    status = ClassificationStatus.CLASSIFIED
+    if float(top_prediction["probability"]) < min_probability:
+        status = ClassificationStatus.LOW_CONFIDENCE
     return {
+        "status": status.value,
         "top_prediction": top_prediction,
         "top_k": predictions,
         "confusion_group": None,
@@ -80,7 +93,7 @@ def build_response(
 ) -> dict[str, Any]:
     if not subject_predictions:
         return {
-            "status": "no_detection",
+            "status": ResponseStatus.NO_DETECTION.value,
             "subjects": [],
         }
 
@@ -94,7 +107,7 @@ def build_response(
         for index, subject_prediction in enumerate(subject_predictions)
     ]
     return {
-        "status": "ok",
+        "status": ResponseStatus.OK.value,
         "subject_count": len(subjects),
         "subjects": subjects,
     }
@@ -108,7 +121,7 @@ def build_subject_payload(
     postprocess_config: PostprocessConfig,
 ) -> dict[str, Any]:
     detection_payload = {
-        "status": candidate.status,
+        "status": candidate.status.value,
         "bbox": list(candidate.bbox) if candidate.bbox else None,
         "score": candidate.detection.score if candidate.detection else None,
         "label": candidate.detection.label if candidate.detection else None,
