@@ -14,7 +14,7 @@
 - 模型 artifact 不提交进仓库。默认从本地 `models/` 读取；与开发伙伴同步时使用私有对象存储或明确版本目录，避免依赖可变的本地状态。
 - `wakareeru` 主仓库通过 Git dependency 提供 `model_core`。发布或部署前优先固定 tag 或 commit SHA，不要让生产镜像漂在 `main` 上。
 - Wakareeru 分类模型 artifact 由主仓库 `python -m trainer.export_inference_model` 导出。artifact schema、`backbone.path` / `processor` 路径解析、缺失文件报错和禁止回退到 Hugging Face cache 的规则，应在主仓库的 `model_core.loader` 中实现；本仓库只把 `classifier.model_dir` 交给 `load_classifier`，不要在推理侧重复拼装或解析分类模型内部路径。
-- 推理侧应要求 `classifier.model_dir` 指向完整本地 artifact，包含 `backbone/`、`processor/`、`classifier.safetensors`、`model_config.json`、`labels.json` 和 `manifest.json`。检测模型是否允许下载由 detector 配置单独决定，不应和分类模型 artifact 规则混在一起。
+- 推理侧应要求 `classifier.model_dir` 指向完整本地 artifact，包含 `backbone/`、`processor/`、`classifier.safetensors`、`model_config.json`、`labels.json`、`l10n_metadata.json` 和 `manifest.json`。检测模型是否允许下载由 detector 配置单独决定，不应和分类模型 artifact 规则混在一起。
 - 分类模型的 resize/crop 输入尺寸以 artifact 内 `model_config.json` 的 `image_size` 为准；主仓库导出时会同步 `processor/preprocessor_config.json` 的默认 `size` / `crop_size`。不要在本仓库另行硬编码分类输入尺寸。
 - GPU/serverless 镜像通常由基础镜像提供 CUDA 版 `torch` 和 `torchvision`。镜像构建时优先用 `requirements-image.txt` 安装非 PyTorch 运行依赖，再用 `pip install --no-deps -e .` 安装本仓库，避免覆盖平台提供的 PyTorch。
 - 如果 handler、event schema、响应 schema、模型目录结构、配置项或入口命令发生非显然变化，同步更新 README 和本文件。
@@ -73,9 +73,8 @@ pip install -e ".[dev]"
 模型可以继续使用主仓库已有的 Cloudflare R2 / rclone 工作流，但推理代码不应直接依赖某个开发者本机路径。推荐使用不可变版本目录，例如：
 
 ```text
-r2:<bucket>/models/
-  detector/grounding-dino/<version>/
-  classifier/wakareeru-0.1.0-alpha.1/
+r2:models/
+  wakareeru-0.1.0-alpha.1/
 ```
 
 本地或容器内同步到：
@@ -89,9 +88,10 @@ models/
     classifier.safetensors
     model_config.json
     labels.json
+    l10n_metadata.json
     manifest.json
 ```
 
-Wakareeru 分类 artifact 由主仓库导出，不在本仓库内重新组装。`model_config.json` 记录分类架构、`backbone.path`、label 数和训练输入 `image_size`；`manifest.json` 记录 artifact 版本、checkpoint 来源、backbone / processor 子目录与训练指标摘要。artifact 内部字段由 `model_core` 读取并用于分类预处理，本仓库不重复解析。
+Wakareeru 分类 artifact 由主仓库导出，不在本仓库内重新组装。`model_config.json` 记录分类架构、`backbone.path`、label 数和训练输入 `image_size`；`manifest.json` 记录 artifact 版本、checkpoint 来源、backbone / processor 子目录与训练指标摘要。模型内部字段由 `model_core` 读取并用于分类预处理；推理侧只额外读取 `l10n_metadata.json`，用于将 prediction 组装为多语言 API 响应。
 
 共享给开发伙伴时使用只读 R2 token，并限制到模型 prefix。生产配置应指向明确版本，不要只依赖 `latest` 这类可变目录。

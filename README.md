@@ -153,12 +153,13 @@ models/
     backbone/
     model_config.json
     labels.json
+    l10n_metadata.json
     classifier.safetensors
     processor/
     manifest.json
 ```
 
-Wakareeru 分类模型由主仓库运行 `python -m trainer.export_inference_model` 导出。分类 artifact 必须是完整本地目录：`model_core.load_classifier` 会从 `classifier.model_dir` 读取本地 `backbone/`、`processor/` 和 `classifier.safetensors`，缺失时直接报错，不回退到 Hugging Face cache 或联网下载。
+Wakareeru 分类模型由主仓库运行 `python -m trainer.export_inference_model` 导出。分类 artifact 必须是完整本地目录：`model_core.load_classifier` 会从 `classifier.model_dir` 读取本地 `backbone/`、`processor/` 和 `classifier.safetensors`，推理服务同时读取 `l10n_metadata.json` 组装多语言 label 与 operator；缺失时直接报错，不回退到 Hugging Face cache 或联网下载。
 
 分类输入尺寸以 artifact 内 `model_config.json` 的 `image_size` 为准；主仓库导出时会同步 `processor/preprocessor_config.json` 的默认 `size` / `crop_size`。本仓库不要另行硬编码分类 resize/crop 尺寸。
 
@@ -229,6 +230,8 @@ handler(event)
 - 顶层 `status`：`ok`、`no_detection`、`error`。
 - `detection.status`：`detected`、`fallback_whole_image`。
 - `classification.status`：`classified`、`low_confidence`、`no_prediction`。
+- prediction 的 `label`：包含 `ja`、`en`、`zh` 的多语言对象。
+- prediction 的 `operator`：按语言分组为 `ja`、`en`、`zh`，每个语言字段始终是列表；单一运营方也返回单元素列表。
 
 成功响应：
 
@@ -254,13 +257,31 @@ handler(event)
         "status": "classified",
         "top_prediction": {
           "label_id": 0,
-          "label": "101系",
+          "label": {
+            "ja": "101系",
+            "en": "101 series",
+            "zh": "101系"
+          },
+          "operator": {
+            "ja": ["国鉄"],
+            "en": ["Japanese National Railways"],
+            "zh": ["日本国有铁道"]
+          },
           "probability": 0.8
         },
         "top_k": [
           {
             "label_id": 0,
-            "label": "101系",
+            "label": {
+              "ja": "101系",
+              "en": "101 series",
+              "zh": "101系"
+            },
+            "operator": {
+              "ja": ["国鉄"],
+              "en": ["Japanese National Railways"],
+              "zh": ["日本国有铁道"]
+            },
             "probability": 0.8
           }
         ],
@@ -296,7 +317,16 @@ handler(event)
         "status": "classified",
         "top_prediction": {
           "label_id": 0,
-          "label": "101系",
+          "label": {
+            "ja": "101系",
+            "en": "101 series",
+            "zh": "101系"
+          },
+          "operator": {
+            "ja": ["国鉄"],
+            "en": ["Japanese National Railways"],
+            "zh": ["日本国有铁道"]
+          },
           "probability": 0.8
         },
         "top_k": [],

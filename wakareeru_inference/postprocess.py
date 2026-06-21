@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from wakareeru_inference.config import PostprocessConfig, VersionConfig
 from wakareeru_inference.crop import CropCandidate
+from wakareeru_inference.localization import LocalizationIndex, localize_prediction
 from wakareeru_inference.response_schema import ClassificationStatus, ResponseStatus
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ def attach_postprocess(
     *,
     predictions: list[dict[str, Any]],
     config: PostprocessConfig,
+    localization: LocalizationIndex,
 ) -> dict[str, Any]:
     classification_payload = build_classification_payload(
         predictions,
@@ -36,7 +38,33 @@ def attach_postprocess(
             classification_payload=classification_payload,
             confusion_groups=build_confusion_group_index(config),
         )
+    localize_classification_payload(
+        classification_payload=classification_payload,
+        localization=localization,
+    )
     return classification_payload
+
+
+def localize_classification_payload(
+    *,
+    classification_payload: dict[str, Any],
+    localization: LocalizationIndex,
+) -> None:
+    localized_top_k = [
+        localize_prediction(prediction, localization=localization)
+        for prediction in classification_payload["top_k"]
+    ]
+    classification_payload["top_k"] = localized_top_k
+    classification_payload["top_prediction"] = localized_top_k[0] if localized_top_k else None
+    group_label_ids = {
+        int(prediction["label_id"])
+        for prediction in classification_payload["group_candidates"]
+    }
+    classification_payload["group_candidates"] = [
+        prediction
+        for prediction in localized_top_k
+        if int(prediction["label_id"]) in group_label_ids
+    ]
 
 
 def build_classification_payload(
@@ -91,6 +119,7 @@ def build_response(
     subject_predictions: list["SubjectPrediction"],
     postprocess_config: PostprocessConfig,
     version_config: VersionConfig,
+    localization: LocalizationIndex,
 ) -> dict[str, Any]:
     if not subject_predictions:
         return {
@@ -105,6 +134,7 @@ def build_response(
             candidate=subject_prediction.candidate,
             predictions=subject_prediction.predictions,
             postprocess_config=postprocess_config,
+            localization=localization,
         )
         for index, subject_prediction in enumerate(subject_predictions)
     ]
@@ -130,6 +160,7 @@ def build_subject_payload(
     candidate: CropCandidate,
     predictions: list[dict[str, Any]],
     postprocess_config: PostprocessConfig,
+    localization: LocalizationIndex,
 ) -> dict[str, Any]:
     detection_payload = {
         "bbox": list(candidate.bbox) if candidate.bbox else None,
@@ -143,5 +174,6 @@ def build_subject_payload(
         "classification": attach_postprocess(
             predictions=predictions,
             config=postprocess_config,
+            localization=localization,
         ),
     }

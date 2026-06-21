@@ -7,6 +7,10 @@ from PIL import Image
 from model_core.loader import LoadedClassifier, load_classifier
 from wakareeru_inference.config import ServiceConfig
 from wakareeru_inference.detector import GroundingDinoDetector, get_torch_device
+from wakareeru_inference.localization import (
+    load_localization_index,
+    validate_localization_index,
+)
 from wakareeru_inference.postprocess import build_response
 from wakareeru_inference.predict import predict_subjects
 from wakareeru_inference.preprocess import preprocess_event, preprocess_image
@@ -34,6 +38,8 @@ class WakareeruService:
                 device=self.device,
                 local_files_only=config.classifier.local_files_only,
             )
+            self.localization = load_localization_index(config.classifier.model_dir)
+            validate_localization_index(self.localization, labels=self.classifier.labels)
             logger.info("Classifier artifact loaded successfully")
         except Exception:
             logger.exception("Failed to initialize Wakareeru service")
@@ -76,6 +82,7 @@ class WakareeruService:
             subject_predictions=subject_predictions,
             postprocess_config=self.config.postprocess,
             version_config=self.config.version,
+            localization=self.localization,
         )
         logger.info(
             "Inference result: %s elapsed=%.3fs",
@@ -113,6 +120,7 @@ class WakareeruService:
             subject_predictions=subject_predictions,
             postprocess_config=self.config.postprocess,
             version_config=self.config.version,
+            localization=self.localization,
         )
         logger.info(
             "Inference result: %s elapsed=%.3fs",
