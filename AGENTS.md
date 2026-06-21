@@ -24,7 +24,7 @@
 ## 稳定边界
 
 - 本仓库不负责训练模型；训练、导出和数据集构建在 `wakareeru` 主仓库。
-- 本仓库不自动下载模型；serverless 镜像或启动脚本可以在部署层从 Cloudflare R2 等私有存储同步模型。
+- Docker 容器启动时根据 `WAKAREERU_CLASSIFIER_VERSION` 从私有 R2 `models` bucket 根目录同步完整分类 artifact；R2 凭据由平台运行时 secret 注入。检测模型仍由镜像或部署层提供，不在推理代码中自动下载。
 - 分类模型不依赖 Hugging Face 本地 cache；`classifier.model_dir` 必须指向完整的 Wakareeru artifact 目录。`model_core.load_classifier` 负责从该目录加载本地 backbone 与 processor，本仓库不为分类模型另设 backbone 配置项或本地 loader 分叉。
 - 本仓库目前不提供 FastAPI / Flask 等自建 HTTP API；平台应调用 `wakareeru_inference.handler.handler`。
 - `handler` 接收 serverless event，默认读取 `event["input"]`，核心图片字段是 `input.image_base64`。

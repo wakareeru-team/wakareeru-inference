@@ -75,7 +75,7 @@ docker buildx build \
 python -m wakareeru_inference.handler
 ```
 
-如果构建上下文里存在 `models/`，默认会被打进镜像。若模型由 RunPod 启动脚本、对象存储同步或 volume 提供，构建时可以不包含 `models/`，但容器启动前必须保证 `configs/service_config.yaml` 指向的模型路径存在。
+如果构建上下文里存在 `models/`，默认会被打进镜像。Docker 容器启动时会先根据环境变量从私有 R2 bucket 同步分类模型，再启动 handler；检测模型仍须由镜像或 volume 提供。
 
 ## 版本与发布
 
@@ -105,9 +105,22 @@ git push origin inference-v0.1.0
 
 ## 模型准备
 
-本仓库不会自动下载或拉取模型。需要自行把模型放到 `configs/service_config.yaml` 中配置的本地路径。
+分类模型放置在 Cloudflare R2 的私有 `models` bucket，artifact 目录直接位于 bucket 根目录，例如：
 
-模型放置在`CloudFlare r2`的`models`桶内，不公开。若获得Endpoint及Keys请自行下载。
+```text
+r2:models/wakareeru-v0.1.1-alpha.1/
+```
+
+Docker 容器启动时要求 RunPod 注入以下环境变量：
+
+```text
+WAKAREERU_CLASSIFIER_VERSION=wakareeru-v0.1.1-alpha.1
+R2_ACCESS_KEY_ID={{ RUNPOD_SECRET_r2_access_key_id }}
+R2_SECRET_ACCESS_ID={{ RUNPOD_SECRET_r2_secret_access_id }}
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+```
+
+镜像内固定 rclone remote 类型、provider、region 和 bucket 名。启动命令把上述 `R2_*` 变量映射到 rclone 的 `RCLONE_CONFIG_R2_*` 变量，不写入 `rclone.conf`，也不把 secret 保存到镜像层。模型同步到 `/app/models/<WAKAREERU_CLASSIFIER_VERSION>/`；同步完成并确认 artifact 必需文件存在后，配置中的分类版本和 `classifier.model_dir` 会被对应环境变量覆盖。
 
 默认配置：
 
@@ -159,10 +172,12 @@ wakareeru_inference.handler.handler
 
 冷启动行为：
 
-1. 读取 `configs/service_config.yaml`，或读取环境变量 `WAKAREERU_SERVICE_CONFIG` 指定的配置文件。
-2. 从 `detector.model_path` 加载本地 Grounding-DINO。
-3. 从 `classifier.model_dir` 加载本地 Wakareeru 分类模型 artifact。
-4. 在 worker 生命周期内复用已加载模型处理后续请求。
+1. Docker 启动命令从 `r2:models/<WAKAREERU_CLASSIFIER_VERSION>/` 同步分类模型。
+2. 读取 `configs/service_config.yaml`，或读取环境变量 `WAKAREERU_SERVICE_CONFIG` 指定的配置文件。
+3. 使用 `WAKAREERU_CLASSIFIER_VERSION` 和同步后的本地目录覆盖分类版本配置。
+4. 从 `detector.model_path` 加载本地 Grounding-DINO。
+5. 从同步后的本地 artifact 加载 Wakareeru 分类模型。
+6. 在 worker 生命周期内复用已加载模型处理后续请求。
 
 ## API 端点
 
