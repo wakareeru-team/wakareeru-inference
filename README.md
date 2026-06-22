@@ -48,7 +48,9 @@ pip install --no-deps -e .
 
 ## Docker / RunPod 镜像
 
-仓库提供面向 RunPod Serverless 的 `linux/amd64` CUDA worker 镜像。默认基础镜像是 CUDA 版 PyTorch runtime，避免在本仓库镜像构建时重新解析或覆盖 `torch` / `torchvision`。
+仓库提供面向 RunPod Serverless 的 `linux/amd64` CUDA worker 镜像。默认使用
+`pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime`，以支持 NVIDIA Blackwell GPU；镜像构建时
+不会重新解析或覆盖基础镜像提供的 `torch` / `torchvision`。
 
 本机或 CI 构建：
 
