@@ -46,6 +46,16 @@ def detach_to_cpu(value):
     return value
 
 
+def resolve_detection_thresholds(
+    config: DetectorConfig,
+    detection_threshold: float | None,
+) -> tuple[float, float]:
+    if detection_threshold is None:
+        return float(config.box_threshold), float(config.text_threshold)
+    threshold = float(detection_threshold)
+    return threshold, threshold
+
+
 class GroundingDinoDetector:
     def __init__(self, *, config: DetectorConfig, device: torch.device) -> None:
         self.config = config
@@ -61,7 +71,16 @@ class GroundingDinoDetector:
         self.model.eval()
 
     @torch.inference_mode()
-    def detect(self, image: Image.Image) -> list[Detection]:
+    def detect(
+        self,
+        image: Image.Image,
+        *,
+        detection_threshold: float | None = None,
+    ) -> list[Detection]:
+        box_threshold, text_threshold = resolve_detection_thresholds(
+            self.config,
+            detection_threshold,
+        )
         labels = [[self.config.text_prompt]]
         target_sizes = [image.size[::-1]]
         inputs = self.processor(
@@ -75,8 +94,8 @@ class GroundingDinoDetector:
         results = self.processor.post_process_grounded_object_detection(
             outputs,
             token_ids,
-            threshold=float(self.config.box_threshold),
-            text_threshold=float(self.config.text_threshold),
+            threshold=box_threshold,
+            text_threshold=text_threshold,
             target_sizes=target_sizes,
         )
         return self._postprocess_results(results[0])
