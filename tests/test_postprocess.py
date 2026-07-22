@@ -22,6 +22,7 @@ LOCALIZATION = LocalizationIndex(
                 "en": ["Japanese National Railways"],
                 "zh": ["日本国有铁道"],
             },
+            wiki_title_ja="国鉄101系電車",
         ),
         68: LocalizedLabel(
             label={"ja": "D51形", "en": "Class D51", "zh": "D51型"},
@@ -30,6 +31,7 @@ LOCALIZATION = LocalizationIndex(
                 "en": ["Japanese National Railways"],
                 "zh": ["日本国有铁道"],
             },
+            wiki_title_ja="国鉄D51形蒸気機関車",
         ),
     }
 )
@@ -59,6 +61,7 @@ def test_low_confidence_keeps_prediction_payload() -> None:
             "en": ["Japanese National Railways"],
             "zh": ["日本国有铁道"],
         },
+        "wiki_title_ja": "国鉄D51形蒸気機関車",
         "probability": 0.13,
     }
     assert payload["top_k"] == [payload["top_prediction"]]

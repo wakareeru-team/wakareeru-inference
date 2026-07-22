@@ -234,6 +234,7 @@ handler(event)
 - `classification.status`：`classified`、`low_confidence`、`no_prediction`。
 - prediction 的 `label`：包含 `ja`、`en`、`zh` 的多语言对象。
 - prediction 的 `operator`：按语言分组为 `ja`、`en`、`zh`，每个语言字段始终是列表；单一运营方也返回单元素列表。
+- prediction 的 `wiki_title_ja`：对应车型的 Wikipedia 日文页面标题，来自 `l10n_metadata.json`。
 
 成功响应：
 
@@ -269,6 +270,7 @@ handler(event)
             "en": ["Japanese National Railways"],
             "zh": ["日本国有铁道"]
           },
+          "wiki_title_ja": "国鉄101系電車",
           "probability": 0.8
         },
         "top_k": [
@@ -284,6 +286,7 @@ handler(event)
               "en": ["Japanese National Railways"],
               "zh": ["日本国有铁道"]
             },
+            "wiki_title_ja": "国鉄101系電車",
             "probability": 0.8
           }
         ],
@@ -329,6 +332,7 @@ handler(event)
             "en": ["Japanese National Railways"],
             "zh": ["日本国有铁道"]
           },
+          "wiki_title_ja": "国鉄101系電車",
           "probability": 0.8
         },
         "top_k": [],

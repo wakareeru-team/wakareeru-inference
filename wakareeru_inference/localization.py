@@ -12,6 +12,7 @@ L10N_METADATA_FILE_NAME = "l10n_metadata.json"
 class LocalizedLabel:
     label: dict[str, str]
     operators: dict[str, list[str]]
+    wiki_title_ja: str
 
 
 @dataclass(frozen=True)
@@ -78,7 +79,14 @@ def parse_localized_label(*, row: Any, path: Path) -> tuple[int, LocalizedLabel]
     lengths = {len(values) for values in operator_values.values()}
     if len(lengths) != 1:
         raise ValueError(f"Operator translations are not aligned for label id {label_id}: {path}")
-    return label_id, LocalizedLabel(label=label, operators=operator_values)
+    wiki_title_ja = row.get("wiki_title_ja")
+    if not isinstance(wiki_title_ja, str) or not wiki_title_ja.strip():
+        raise ValueError(f"Invalid wiki_title_ja metadata for label id {label_id}: {path}")
+    return label_id, LocalizedLabel(
+        label=label,
+        operators=operator_values,
+        wiki_title_ja=wiki_title_ja.strip(),
+    )
 
 
 def parse_language_map(
@@ -142,5 +150,6 @@ def localize_prediction(
             language: list(localized.operators[language])
             for language in LANGUAGES
         },
+        "wiki_title_ja": localized.wiki_title_ja,
         "probability": float(prediction["probability"]),
     }
