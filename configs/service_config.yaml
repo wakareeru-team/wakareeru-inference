@@ -1,5 +1,5 @@
 version:
-  inference: "0.1.2"
+  inference: "0.1.4"
   detector: "grounding-dino"
   classifier: "wakareeru-0.3.0-alpha.1"
 
@@ -9,16 +9,16 @@ detector:
   model_path: "models/grounding-dino"
   local_files_only: true
   text_prompt: "a train"
-  box_threshold: 0.2
-  text_threshold: 0.2
+  box_threshold: 0.3
+  text_threshold: 0.3
   nms_iou_threshold: 0.5
   min_box_score: 0.0
-  max_detections: 3
+  max_detections: 4
 
 crop:
   padding_ratio: 0.04
   select_policy: "all"
-  fallback_policy: "whole_image"
+  fallback_policy: "error" # whole_image or error
 
 classifier:
   model_dir: "models/wakareeru-0.3.0-alpha.1"
