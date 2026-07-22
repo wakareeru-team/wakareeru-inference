@@ -1,7 +1,7 @@
 version:
-  inference: "0.1.1"
+  inference: "0.1.2"
   detector: "grounding-dino"
-  classifier: "wakareeru-0.1.1-alpha.1"
+  classifier: "wakareeru-0.3.0-alpha.1"
 
 device: "auto"
 
@@ -21,7 +21,7 @@ crop:
   fallback_policy: "whole_image"
 
 classifier:
-  model_dir: "models/wakareeru-0.1.1-alpha.1"
+  model_dir: "models/wakareeru-0.3.0-alpha.1"
   local_files_only: true
   top_k: 5
 
