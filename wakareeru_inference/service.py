@@ -5,7 +5,7 @@ from typing import Any
 from PIL import Image
 
 from model_core.loader import LoadedClassifier, load_classifier
-from wakareeru_inference.config import ServiceConfig
+from wakareeru_inference.config import CropConfig, ServiceConfig
 from wakareeru_inference.detector import GroundingDinoDetector, get_torch_device
 from wakareeru_inference.localization import (
     load_localization_index,
@@ -14,6 +14,7 @@ from wakareeru_inference.localization import (
 from wakareeru_inference.postprocess import build_response
 from wakareeru_inference.predict import predict_subjects
 from wakareeru_inference.preprocess import preprocess_event, preprocess_image
+from wakareeru_inference.request_schema import InferenceOptions, parse_inference_options
 
 logger = logging.getLogger(__name__)
 
@@ -53,16 +54,20 @@ class WakareeruService:
         start_time = time.perf_counter()
         payload = event.get("input", event)
         top_k = int(payload.get("top_k", self.config.classifier.top_k))
+        inference_options = parse_inference_options(payload)
+        crop_config = crop_config_with_overrides(self.config.crop, inference_options)
         logger.info(
-            "Starting event inference: payload_keys=%s top_k=%s",
+            "Starting event inference: payload_keys=%s top_k=%s inference_options=%s",
             sorted(str(key) for key in payload.keys()),
             top_k,
+            inference_options.model_dump(exclude_none=True),
         )
 
         preprocess_result = preprocess_event(
             event=event,
             detector=self.detector,
-            crop_config=self.config.crop,
+            crop_config=crop_config,
+            detection_threshold=inference_options.detection_threshold,
         )
         logger.info(
             "Preprocess complete: image_size=%s detections=%s crop_candidates=%s",
@@ -140,6 +145,17 @@ def summarize_response(response: dict[str, Any]) -> dict[str, Any]:
             for subject in subjects
         ],
     }
+
+
+def crop_config_with_overrides(
+    crop_config: CropConfig,
+    inference_options: InferenceOptions,
+) -> CropConfig:
+    fallback_to_whole_image = inference_options.fallback_to_whole_image
+    if fallback_to_whole_image is None:
+        return crop_config
+    fallback_policy = "whole_image" if fallback_to_whole_image else "error"
+    return crop_config.model_copy(update={"fallback_policy": fallback_policy})
 
 
 def summarize_subject(subject: dict[str, Any]) -> dict[str, Any]:
