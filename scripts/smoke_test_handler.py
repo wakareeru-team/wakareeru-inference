@@ -31,6 +31,18 @@ def parse_args() -> argparse.Namespace:
         help="Override classifier top_k for this request.",
     )
     parser.add_argument(
+        "--detection-threshold",
+        default=None,
+        type=float,
+        help="Override both Grounding-DINO box and text thresholds for this request.",
+    )
+    parser.add_argument(
+        "--fallback-to-whole-image",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override whether a request without detections falls back to the whole image.",
+    )
+    parser.add_argument(
         "--output",
         default=None,
         type=Path,
@@ -39,13 +51,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def make_event(*, image_path: Path, top_k: int | None) -> dict[str, Any]:
+def make_event(
+    *,
+    image_path: Path,
+    top_k: int | None,
+    detection_threshold: float | None,
+    fallback_to_whole_image: bool | None,
+) -> dict[str, Any]:
     encoded = base64.b64encode(image_path.read_bytes()).decode("utf-8")
     payload: dict[str, Any] = {
         "image_base64": encoded,
     }
     if top_k is not None:
         payload["top_k"] = top_k
+    inference_options = {}
+    if detection_threshold is not None:
+        inference_options["detection_threshold"] = detection_threshold
+    if fallback_to_whole_image is not None:
+        inference_options["fallback_to_whole_image"] = fallback_to_whole_image
+    if inference_options:
+        payload["inference_options"] = inference_options
     return {
         "input": payload,
     }
@@ -58,6 +83,8 @@ def main() -> None:
         make_event(
             image_path=args.image,
             top_k=args.top_k,
+            detection_threshold=args.detection_threshold,
+            fallback_to_whole_image=args.fallback_to_whole_image,
         )
     )
     output = json.dumps(result, ensure_ascii=False, indent=2)
