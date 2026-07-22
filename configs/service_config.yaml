@@ -1,5 +1,5 @@
 version:
-  inference: "0.1.4"
+  inference: "0.1.5"
   detector: "grounding-dino"
   classifier: "wakareeru-0.3.0-alpha.1"
 
