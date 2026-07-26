@@ -48,6 +48,9 @@ configs/
 requirements-image.txt
 scripts/
   smoke_test_handler.py
+test/
+  gradio_inference.py     # 本地 Docker 推理 endpoint 的交互式测试界面
+  start_local_docker.sh   # 以 RunPod 本地 API 模式构建/启动 Docker
 tests/
   test_image_io.py
 models/
@@ -58,7 +61,7 @@ models/
 
 ```bash
 ruff check .
-python -m py_compile wakareeru_inference/*.py scripts/smoke_test_handler.py
+python -m py_compile wakareeru_inference/*.py scripts/smoke_test_handler.py test/*.py
 pytest
 ```
 

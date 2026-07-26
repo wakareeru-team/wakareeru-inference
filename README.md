@@ -23,6 +23,30 @@ python scripts/smoke_test_handler.py \
   --no-fallback-to-whole-image
 ```
 
+也可以使用 RunPod SDK 自带的本地 API 模式启动 Docker，再用 Gradio 界面上传任意图片并调节
+detection threshold、NMS IoU threshold、fallback 和 top-k。生产镜像入口保持不变；启动脚本
+通过 `--rp_serve_api` 暴露单并发 `/runsync`，并将本机模型目录只读挂载进容器。首次启动：
+
+```bash
+WAKAREERU_CLASSIFIER_VERSION=wakareeru-0.3.0-alpha.1 \
+  ./test/start_local_docker.sh --build
+```
+
+镜像已经构建后可以省略 `--build`。如需修改镜像名或本地端口，可设置
+`WAKAREERU_LOCAL_IMAGE` 或 `WAKAREERU_LOCAL_PORT`。
+
+另开一个终端启动 Gradio。它默认调用 `http://127.0.0.1:8000/runsync`，并将 bbox 叠加到原图：
+
+```bash
+pip install "gradio>=5,<7"
+python test/gradio_inference.py --inbrowser
+```
+
+如需改用其他本地端口，可通过 `WAKAREERU_INFERENCE_URL` 环境变量或界面输入完整 URL。
+本地端口只绑定到 loopback，不应作为生产 HTTP endpoint。启动脚本与 production 一样接受
+`WAKAREERU_CLASSIFIER_VERSION`，并将分类模型目录解析为 `/app/models/<version>`；挂载目录中
+必须存在对应的完整 artifact。本地模式不会从 R2 同步模型。
+
 ## 依赖
 
 当前依赖写在 `pyproject.toml`。其中 `wakareeru` 主仓库通过 Git dependency 安装，因为分类模型定义、加载和 crop 分类逻辑来自主仓库的 `model_core`。
