@@ -68,6 +68,7 @@ class WakareeruService:
             detector=self.detector,
             crop_config=crop_config,
             detection_threshold=inference_options.detection_threshold,
+            nms_iou_threshold=inference_options.nms_iou_threshold,
         )
         logger.info(
             "Preprocess complete: image_size=%s detections=%s crop_candidates=%s",

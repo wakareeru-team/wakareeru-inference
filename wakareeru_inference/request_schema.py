@@ -14,6 +14,12 @@ class InferenceOptions(BaseModel):
         le=1.0,
         strict=True,
     )
+    nms_iou_threshold: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        strict=True,
+    )
     fallback_to_whole_image: bool | None = Field(default=None, strict=True)
 
 

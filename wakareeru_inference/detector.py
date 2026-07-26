@@ -56,6 +56,15 @@ def resolve_detection_thresholds(
     return threshold, threshold
 
 
+def resolve_nms_iou_threshold(
+    config: DetectorConfig,
+    nms_iou_threshold: float | None,
+) -> float:
+    if nms_iou_threshold is None:
+        return float(config.nms_iou_threshold)
+    return float(nms_iou_threshold)
+
+
 class GroundingDinoDetector:
     def __init__(self, *, config: DetectorConfig, device: torch.device) -> None:
         self.config = config
@@ -76,6 +85,7 @@ class GroundingDinoDetector:
         image: Image.Image,
         *,
         detection_threshold: float | None = None,
+        nms_iou_threshold: float | None = None,
     ) -> list[Detection]:
         box_threshold, text_threshold = resolve_detection_thresholds(
             self.config,
@@ -98,9 +108,17 @@ class GroundingDinoDetector:
             text_threshold=text_threshold,
             target_sizes=target_sizes,
         )
-        return self._postprocess_results(results[0])
+        return self._postprocess_results(
+            results[0],
+            nms_iou_threshold=nms_iou_threshold,
+        )
 
-    def _postprocess_results(self, result: dict) -> list[Detection]:
+    def _postprocess_results(
+        self,
+        result: dict,
+        *,
+        nms_iou_threshold: float | None = None,
+    ) -> list[Detection]:
         boxes = result["boxes"]
         scores = result["scores"]
         text_labels = result["text_labels"]
@@ -113,7 +131,7 @@ class GroundingDinoDetector:
             boxes.float(),
             scores.float(),
             label_ids,
-            float(self.config.nms_iou_threshold),
+            resolve_nms_iou_threshold(self.config, nms_iou_threshold),
         )
         detections = []
         for output_index in keep.tolist():

@@ -22,6 +22,7 @@ def preprocess_event(
     detector: GroundingDinoDetector,
     crop_config: CropConfig,
     detection_threshold: float | None = None,
+    nms_iou_threshold: float | None = None,
 ) -> PreprocessResult:
     image = load_image_from_event(event)
     return preprocess_image(
@@ -29,6 +30,7 @@ def preprocess_event(
         detector=detector,
         crop_config=crop_config,
         detection_threshold=detection_threshold,
+        nms_iou_threshold=nms_iou_threshold,
     )
 
 
@@ -38,10 +40,12 @@ def preprocess_image(
     detector: GroundingDinoDetector,
     crop_config: CropConfig,
     detection_threshold: float | None = None,
+    nms_iou_threshold: float | None = None,
 ) -> PreprocessResult:
     detections = detector.detect(
         image,
         detection_threshold=detection_threshold,
+        nms_iou_threshold=nms_iou_threshold,
     )
     crop_candidates = make_crop_candidates(
         image=image,

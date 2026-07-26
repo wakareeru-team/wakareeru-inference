@@ -209,6 +209,7 @@ handler(event)
     "top_k": 5,
     "inference_options": {
       "detection_threshold": 0.3,
+      "nms_iou_threshold": 0.35,
       "fallback_to_whole_image": false
     }
   }
@@ -231,7 +232,8 @@ handler(event)
 - `image_base64`：必填，base64 编码图片。
 - `top_k`：可选，返回每个主体的前 K 个分类结果；缺省使用 `configs/service_config.yaml` 中的 `classifier.top_k`。
 - `inference_options.detection_threshold`：可选，范围 `0` 到 `1`；同时覆盖本次请求的 Grounding-DINO box threshold 与 text threshold。
-- `inference_options.fallback_to_whole_image`：可选；`true` 表示无检测结果时使用整图分类，`false` 表示返回无检测结果。两个 override 都只作用于当前请求，未提供时沿用 `service_config.yaml`。
+- `inference_options.nms_iou_threshold`：可选，范围 `0` 到 `1`；覆盖本次请求的 NMS IoU threshold。
+- `inference_options.fallback_to_whole_image`：可选；`true` 表示无检测结果时使用整图分类，`false` 表示返回无检测结果。三个 override 都只作用于当前请求，未提供时沿用 `service_config.yaml`。
 
 ## 输出格式
 
