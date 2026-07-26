@@ -11,3 +11,7 @@ __pycache__
 venv
 
 *.log
+
+models/*
+!models/grounding-dino/
+!models/grounding-dino/**
